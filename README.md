@@ -33,7 +33,14 @@
 | `html-to-image.js` | PNG 변환 라이브러리 (배포 필수) |
 | `assets/` | 원본/레퍼런스 PNG (개발 참고용) |
 | `raw assets/` | 신규 제품 도안 원본 (클린/가이드 버전, 개발 참고용) |
-| `serve.js` | 로컬 확인용 서버 — `node serve.js` → http://localhost:8899 |
+| `serve.js` | 로컬 확인용 서버 (Node.js 필요) |
+
+로컬에서 미리 보려면 이 저장소를 내려받은 뒤 아래 중 하나를 프로젝트 폴더에서 실행하고, 뜨는 주소를 직접 열어야 합니다 (Node.js가 없다면 Python으로 대체 가능).
+
+```bash
+node serve.js          # Node.js가 있는 경우 → http://localhost:8899
+python3 -m http.server 8899   # Node.js가 없는 경우 → http://localhost:8899
+```
 
 ## GitHub Pages 배포
 
