@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>상세페이지 치수 이미지 생성기</title>
+<style>
+  :root {
+    --teal: #35cccb;
+    --ink: #111;
+    --gray-1: #f5f6f8;
+    --gray-2: #e5e7eb;
+    --gray-3: #c9ced6;
+    --gray-4: #9aa1ad;
+    --gray-5: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: #eceff3;
+    color: var(--ink);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ─────────── 편집 패널 ─────────── */
+  #editor {
+    width: 380px;
+    min-width: 380px;
+    height: 100vh;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid var(--gray-2);
+    padding: 24px 20px 60px;
+  }
+  #editor h1 { font-size: 17px; margin-bottom: 4px; }
+  #editor .sub { font-size: 12px; color: var(--gray-4); margin-bottom: 20px; }
+  .ed-section { margin-bottom: 26px; }
+  .ed-section > h2 {
+    font-size: 12px; font-weight: 700; color: var(--gray-5);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px;
+  }
+  .ed-hint { font-size: 11px; color: var(--gray-4); margin-top: 6px; line-height: 1.5; }
+
+  .prod-tabs { display: flex; gap: 8px; }
+  .prod-tab {
+    flex: 1; padding: 10px 0; border: 1px solid var(--gray-2); border-radius: 8px;
+    background: #fff; font-size: 14px; cursor: pointer; font-weight: 600; color: var(--gray-5);
+  }
+  .prod-tab.on { border-color: var(--teal); color: #0aa; background: #f0fbfb; }
+
+  .part-list { display: flex; flex-direction: column; gap: 6px; }
+  .part-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border: 1px solid var(--gray-2); border-radius: 8px;
+    cursor: pointer; user-select: none; background: #fff;
+  }
+  .part-item:hover { border-color: var(--gray-3); }
+  .part-item.on { border-color: var(--teal); background: #f0fbfb; }
+  .part-item .num {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--gray-2);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .part-item.on .num { background: var(--teal); }
+  .part-item .ko { font-size: 14px; font-weight: 600; }
+  .part-item .en { font-size: 12px; color: var(--gray-4); margin-left: auto; }
+
+  .size-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .size-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 8px 5px 12px; background: var(--gray-1); border-radius: 6px;
+    font-size: 13px; font-weight: 600;
+  }
+  .size-chip .name { cursor: text; border-bottom: 1px dashed var(--gray-3); }
+  .size-chip .name:hover { border-bottom-color: var(--teal); }
+  .size-chip input.rename {
+    width: 64px; padding: 2px 4px; border: 1px solid var(--teal); border-radius: 4px;
+    font-size: 13px; font-weight: 600;
+  }
+  .unit-toggle { display: inline-flex; border: 1px solid var(--gray-2); border-radius: 6px; overflow: hidden; margin-left: 8px; vertical-align: middle; }
+  .unit-toggle button {
+    padding: 3px 10px; border: none; background: #fff; font-size: 11px; font-weight: 700;
+    color: var(--gray-4); cursor: pointer;
+  }
+  .unit-toggle button.on { background: var(--teal); color: #fff; }
+  .size-chip button {
+    border: none; background: none; cursor: pointer; color: var(--gray-4);
+    font-size: 14px; line-height: 1; padding: 2px;
+  }
+  .size-chip button:hover { color: #e5484d; }
+  .size-add { display: flex; gap: 6px; }
+  .size-add input {
+    flex: 1; padding: 7px 10px; border: 1px solid var(--gray-2); border-radius: 6px; font-size: 13px;
+  }
+  .size-add button {
+    padding: 7px 14px; border: none; border-radius: 6px; background: var(--ink);
+    color: #fff; font-size: 13px; cursor: pointer;
+  }
+
+  #value-grid { width: 100%; border-collapse: collapse; }
+  #value-grid th, #value-grid td { padding: 5px 4px; font-size: 12px; }
+  #value-grid th { color: var(--gray-5); font-weight: 600; text-align: center; }
+  #value-grid th:first-child { text-align: left; }
+  #value-grid td.lbl { font-weight: 600; white-space: nowrap; }
+  #value-grid input {
+    width: 100%; min-width: 52px; padding: 6px 6px; text-align: center;
+    border: 1px solid var(--gray-2); border-radius: 6px; font-size: 13px;
+  }
+  #value-grid input:focus { outline: none; border-color: var(--teal); }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-row span { font-size: 14px; font-weight: 600; }
+  .switch { position: relative; width: 42px; height: 24px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .track {
+    position: absolute; inset: 0; background: var(--gray-3); border-radius: 12px;
+    cursor: pointer; transition: background .15s;
+  }
+  .switch .track::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+    background: #fff; border-radius: 50%; transition: left .15s;
+  }
+  .switch input:checked + .track { background: var(--teal); }
+  .switch input:checked + .track::after { left: 21px; }
+
+  #export-btn {
+    width: 100%; padding: 13px 0; border: none; border-radius: 10px;
+    background: var(--ink); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  #export-btn:disabled { opacity: .5; cursor: default; }
+
+  /* ─────────── 미리보기 영역 ─────────── */
+  #stage {
+    flex: 1; height: 100vh; overflow-y: auto;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 40px 24px;
+  }
+  #canvas-wrap { box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+
+  /* ─────────── 결과물 (내보내기 대상) ─────────── */
+  #output {
+    width: 440px; background: #fff; padding: 34px 26px 40px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  }
+  #output h2.big { font-size: 25px; font-weight: 800; letter-spacing: -.01em; }
+  #output .figure { padding: 26px 0 10px; }
+  #output .figure svg { width: 100%; height: auto; display: block; }
+
+  #output table.meas { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  #output table.meas th, #output table.meas td {
+    border-top: 1px solid #ececec; padding: 17px 4px; font-size: 14px;
+  }
+  #output table.meas tr:last-child td { border-bottom: 1px solid #ececec; }
+  #output table.meas th { font-weight: 700; text-align: center; }
+  #output table.meas th.corner { border-top: none; }
+  #output table.meas thead th { border-top: none; border-bottom: 1px solid #ececec; }
+  #output table.meas td.lbl { text-align: left; color: #111; }
+  #output table.meas td.val { text-align: center; }
+
+  #output .guide { margin-top: 34px; }
+  #output .guide h3 { font-size: 19px; font-weight: 800; color: #b6bcc4; margin-bottom: 14px; }
+  #output .guide .intro { font-size: 13px; line-height: 1.65; color: #8b929c; margin-bottom: 14px; }
+  #output .guide .intro .en { color: #b6bcc4; }
+  #output .guide ol { list-style: none; }
+  #output .guide li { margin-bottom: 13px; font-size: 13px; line-height: 1.6; }
+  #output .guide li .t { font-weight: 700; color: #6f7681; }
+  #output .guide li .ko { color: #8b929c; }
+  #output .guide li .en { color: #b6bcc4; }
+
+  #output .checkup { margin-top: 42px; }
+  #output .checkup h2 { font-size: 25px; font-weight: 800; margin-bottom: 6px; }
+  #output table.chk { width: 100%; border-collapse: collapse; }
+  #output table.chk td { border-top: 1px solid #ececec; padding: 16px 2px; font-size: 13.5px; vertical-align: top; }
+  #output table.chk tr:last-child td { border-bottom: 1px solid #ececec; }
+  #output table.chk td .k { display: block; font-weight: 700; }
+  #output table.chk td .e { display: block; }
+  #output table.chk td.head .k, #output table.chk td.head .e { color: #111; }
+  #output table.chk td.opt { cursor: pointer; position: relative; padding-left: 14px; }
+  #output table.chk td.opt .k, #output table.chk td.opt .e { color: #c9ced6; font-weight: 400; }
+  #output table.chk td.opt .k { font-weight: 600; }
+  #output table.chk td.opt.sel .k { color: #111; font-weight: 700; }
+  #output table.chk td.opt.sel .e { color: #111; }
+  #output table.chk td.opt.sel::before {
+    content: ""; position: absolute; left: 2px; top: 22px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--teal);
+  }
+
+  #output .empty-note {
+    padding: 30px 0; text-align: center; color: var(--gray-4); font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div id="editor">
+  <h1>치수 이미지 생성기</h1>
+  <div class="sub">항목을 클릭한 순서대로 번호가 매겨집니다</div>
+
+  <div class="ed-section">
+    <h2>1. 제품 선택</h2>
+    <div class="prod-tabs" id="prod-tabs"></div>
+  </div>
+
+  <div class="ed-section">
+    <h2>2. 치수 항목 (클릭 순서 = 번호)</h2>
+    <div class="part-list" id="part-list"></div>
+    <div class="ed-hint">클릭하면 추가되고 다시 클릭하면 빠집니다. 추가된 순서대로 1, 2, 3… 번호가 이미지와 표에 함께 매겨집니다.</div>
+  </div>
+
+  <div class="ed-section">
+    <h2>3. 사이즈</h2>
+    <div class="size-chips" id="size-chips"></div>
+    <div class="size-add">
+      <input id="size-input" type="text" placeholder="예: S, M, L, Free" maxlength="10">
+      <button id="size-add-btn">추가</button>
+    </div>
+  </div>
+
+  <div class="ed-section">
+    <h2>4. 치수 입력
+      <span class="unit-toggle" id="unit-toggle">
+        <button data-unit="cm">cm</button><button data-unit="in">inch</button>
+      </span>
+    </h2>
+    <table id="value-grid"></table>
+  </div>
+
+  <div class="ed-section">
+    <div class="toggle-row">
+      <span>Check Up 섹션 사용</span>
+      <label class="switch">
+        <input type="checkbox" id="chk-toggle">
+        <span class="track"></span>
+      </label>
+    </div>
+    <div class="ed-hint">사용 시 미리보기의 Check Up 글자를 직접 클릭해 선택하세요. 선택한 항목만 검은색으로 표시됩니다.</div>
+  </div>
+
+  <div class="ed-section">
+    <button id="export-btn">PNG 이미지 다운로드</button>
+    <div class="ed-hint" style="text-align:center">2배 해상도(880px 폭)로 저장됩니다</div>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="canvas-wrap">
+    <div id="output"></div>
+  </div>
+</div>
+
+<script src="html-to-image.js"></script>
+<script src="assets.js"></script>
+<script>
+/* ══════════════════ 제품 정의 ══════════════════
+ * 선 좌표는 각 제품 원본 이미지의 픽셀 좌표계 기준 (캔버스 분석으로 보정).
+ * badge = 번호 원 위치. lines = 파란 선 (dash: 점선 여부)
+ */
+const TEAL = "#35cccb";
+
+const PRODUCTS = {
+  tshirt: {
+    label: "티셔츠",
+    image: ASSETS.tshirt, imgW: 720, imgH: 371,
+    parts: [
+      { id: "length", ko: "총장", en: "Body length",
+        desc_ko: "뒷편 옆목점부터 밑단 끝까지의 수직 길이",
+        desc_en: "The length between the edge of the neck opening to the bottom(hem)",
+        badge: [340, 16],
+        lines: [
+          { x1: 340, y1: 30, x2: 340, y2: 96, dash: true },
+          { x1: 340, y1: 96, x2: 340, y2: 358 }
+        ] },
+      { id: "shoulder", ko: "어깨너비", en: "Shoulder width",
+        desc_ko: "어깨 재봉선 끝점 사이의 직선 길이",
+        desc_en: "The length between both ends of the shoulder sewing lines",
+        badge: [202, 84],
+        lines: [
+          { x1: 232, y1: 84, x2: 446, y2: 84 },
+          { x1: 446, y1: 72, x2: 446, y2: 96 }
+        ] },
+      { id: "chest", ko: "가슴너비", en: "Chest width",
+        desc_ko: "암홀 아래 1.5cm 지점에서 반대편 동일지점까지의 길이",
+        desc_en: "The length between 1.5cm below one armhole to the other one",
+        badge: [206, 210],
+        lines: [ { x1: 234, y1: 210, x2: 448, y2: 210 } ] },
+      { id: "hem", ko: "밑단너비", en: "Hem width",
+        desc_ko: "밑단 양쪽 끝점 사이의 길이",
+        desc_en: "The length between both ends of the hem",
+        badge: [204, 352],
+        lines: [ { x1: 234, y1: 352, x2: 448, y2: 352 } ] },
+      { id: "sleeve", ko: "소매길이", en: "Sleeve length",
+        desc_ko: "어깨 재봉선 끝점에서 소매 끝점까지의 길이",
+        desc_en: "The length between the end of the shoulder sewing line to the end of the sleeve",
+        badge: [616, 196],
+        lines: [ { x1: 456, y1: 80, x2: 588, y2: 278 } ] }
+    ]
+  },
+
+  pants: {
+    label: "바지",
+    image: ASSETS.pants, imgW: 720, imgH: 512,
+    parts: [
+      { id: "length", ko: "총장", en: "Total length",
+        desc_ko: "허리단 상단부터 밑단까지의 길이",
+        desc_en: "The length between the top of the waistband to the hem",
+        badge: [197, 490],
+        lines: [ { x1: 241, y1: 52, x2: 209, y2: 464 } ] },
+      { id: "rise", ko: "밑위", en: "Rise",
+        desc_ko: "허리단 상단부터 밑위 재봉선까지의 수직 길이",
+        desc_en: "The vertical length between the top of the waistband to the crotch seam",
+        badge: [352, 16],
+        lines: [
+          { x1: 352, y1: 30, x2: 352, y2: 54, dash: true },
+          { x1: 352, y1: 54, x2: 352, y2: 185 }
+        ] },
+      { id: "waist", ko: "허리단면", en: "Waist",
+        desc_ko: "허리단 양쪽 끝점 사이의 길이",
+        desc_en: "The length between both ends of the waistband",
+        badge: [476, 56],
+        lines: [ { x1: 255, y1: 60, x2: 450, y2: 60 } ] },
+      { id: "thigh", ko: "허벅지단면", en: "Thigh",
+        desc_ko: "밑위 재봉선에서 허벅지 바깥쪽 재봉선까지의 길이",
+        desc_en: "The length between the crotch seam to the outer thigh",
+        badge: [483, 159],
+        lines: [ { x1: 354, y1: 183, x2: 459, y2: 164 } ] },
+      { id: "hip", ko: "엉덩이단면", en: "Hip",
+        desc_ko: "밑위 재봉선 지점에서 수평으로 반대편까지의 길이",
+        desc_en: "The horizontal length across the hip at the crotch level",
+        badge: [512, 194],
+        lines: [
+          { x1: 352, y1: 196, x2: 460, y2: 196 },
+          { x1: 460, y1: 196, x2: 496, y2: 196, dash: true }
+        ] },
+      { id: "hemwidth", ko: "밑단단면", en: "Leg opening",
+        desc_ko: "바지 밑단 양쪽 끝점 사이의 길이",
+        desc_en: "The length between both ends of the leg opening",
+        badge: [508, 474],
+        lines: [ { x1: 382, y1: 487, x2: 482, y2: 478 } ] }
+    ]
+  }
+};
+
+const CHECKUP_ROWS = [
+  { id: "thickness", ko: "두께감", en: "Thickness",
+    opts: [ ["두꺼움","Thick"], ["보통","Standard"], ["얇음","Thin"] ] },
+  { id: "stretch", ko: "신축성", en: "Stretch",
+    opts: [ ["있음","Yes"], ["보통","Standard"], ["없음","No"] ] },
+  { id: "opacity", ko: "비침", en: "Opacity",
+    opts: [ ["비침","Transparent"], ["조금 비침","Semiopaque"], ["비침 없음","Opaque"] ] },
+  { id: "lining", ko: "안감", en: "Lining",
+    opts: [ ["있음","Yes"], ["없음","No"], ["기모","Fleece"] ] }
+];
+
+/* ══════════════════ 상태 ══════════════════ */
+const state = {
+  product: "tshirt",
+  selected: [],            // part id, 클릭(입력) 순서 = 번호
+  sizes: ["Free"],
+  values: {},              // values[partId][size] = "72"
+  unit: "cm",              // "cm" | "in"
+  checkupOn: false,
+  checkupSel: {}           // checkupSel[rowId] = 옵션 index
+};
+
+/* ══════════════════ SVG 생성 ══════════════════ */
+function buildSvg() {
+  const p = PRODUCTS[state.product];
+  let overlay = "";
+  const bg = `<image href="${p.image}" x="0" y="0" width="${p.imgW}" height="${p.imgH}"/>`;
+  state.selected.forEach((pid, i) => {
+    const part = p.parts.find(x => x.id === pid);
+    if (!part) return;
+    part.lines.forEach(l => {
+      overlay += `<line x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}"
+        stroke="${TEAL}" stroke-width="3" stroke-linecap="round"
+        ${l.dash ? 'stroke-dasharray="2 8"' : ""}/>`;
+    });
+    const [bx, by] = part.badge;
+    overlay += `<circle cx="${bx}" cy="${by}" r="14" fill="${TEAL}"/>
+      <text x="${bx}" y="${by}" fill="#fff" font-size="15" font-weight="700"
+        text-anchor="middle" dominant-baseline="central"
+        font-family="Arial, sans-serif">${i + 1}</text>`;
+  });
+  return `<svg viewBox="0 0 ${p.imgW} ${p.imgH}" xmlns="http://www.w3.org/2000/svg">${bg}${overlay}</svg>`;
+}
+
+/* ══════════════════ 결과물 렌더 ══════════════════ */
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+function renderOutput() {
+  const p = PRODUCTS[state.product];
+  const sel = state.selected.map(id => p.parts.find(x => x.id === id)).filter(Boolean);
+  let html = `<h2 class="big">Product Measurements</h2>`;
+  html += `<div class="figure">${buildSvg()}</div>`;
+
+  if (sel.length === 0) {
+    html += `<div class="empty-note">왼쪽에서 치수 항목을 선택하세요</div>`;
+  } else {
+    // 섹션 2: 치수 표
+    html += `<table class="meas"><thead><tr><th class="corner"></th>`;
+    state.sizes.forEach(s => html += `<th>${esc(s)}</th>`);
+    html += `</tr></thead><tbody>`;
+    sel.forEach((part, i) => {
+      html += `<tr><td class="lbl"><span class="lbltxt" data-num="${i + 1}">${i + 1} : ${esc(part.en)}</span></td>`;
+      state.sizes.forEach(s => {
+        const v = (state.values[part.id] || {})[s] || "";
+        html += `<td class="val">${v ? esc(v) + state.unit : "-"}</td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+
+    // 섹션 3: 측정 가이드
+    html += `<div class="guide"><h3>Measuring Guide</h3>
+      <div class="intro">측정 위치에 따라 오차가 있을 수 있습니다.<br>
+      <span class="en">The size displayed above may differ depending<br>on the points of measurement.</span></div><ol>`;
+    sel.forEach((part, i) => {
+      html += `<li><span class="t">${i + 1}. ${esc(part.ko)} ${esc(part.en)}</span><br>
+        <span class="ko">${esc(part.desc_ko)}</span><br>
+        <span class="en">${esc(part.desc_en)}</span></li>`;
+    });
+    html += `</ol></div>`;
+  }
+
+  // 섹션 4: Check Up
+  if (state.checkupOn) {
+    html += `<div class="checkup"><h2>Check Up</h2><table class="chk"><tbody>`;
+    CHECKUP_ROWS.forEach(row => {
+      html += `<tr><td class="head" style="width:24%"><span class="k">${row.ko}</span><span class="e">${row.en}</span></td>`;
+      row.opts.forEach(([ko, en], oi) => {
+        const on = state.checkupSel[row.id] === oi;
+        html += `<td class="opt${on ? " sel" : ""}" data-row="${row.id}" data-opt="${oi}" style="width:${76 / 3}%">
+          <span class="k">${ko}</span><span class="e">${en}</span></td>`;
+      });
+      // 옵션이 3개 미만이면 빈 칸 채움
+      for (let k = row.opts.length; k < 3; k++) html += `<td></td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  document.getElementById("output").innerHTML = html;
+
+  // 섹션 2 라벨이 줄바꿈되면 항목명을 빼고 번호만 표시 (표 전체 일괄 적용)
+  const lblSpans = [...document.querySelectorAll("#output table.meas .lbltxt")];
+  if (lblSpans.some(sp => sp.getClientRects().length > 1)) {
+    lblSpans.forEach(sp => { sp.textContent = sp.dataset.num; });
+  }
+
+  // Check Up 클릭 바인딩 (미리보기에서 직접 선택)
+  document.querySelectorAll("#output td.opt").forEach(td => {
+    td.addEventListener("click", () => {
+      const r = td.dataset.row, o = Number(td.dataset.opt);
+      if (state.checkupSel[r] === o) delete state.checkupSel[r];
+      else state.checkupSel[r] = o;
+      renderOutput();
+    });
+  });
+}
+
+/* ══════════════════ 편집 패널 렌더 ══════════════════ */
+function renderProdTabs() {
+  const el = document.getElementById("prod-tabs");
+  el.innerHTML = "";
+  Object.entries(PRODUCTS).forEach(([id, p]) => {
+    const b = document.createElement("button");
+    b.className = "prod-tab" + (state.product === id ? " on" : "");
+    b.textContent = p.label;
+    b.onclick = () => {
+      if (state.product === id) return;
+      state.product = id;
+      state.selected = [];
+      state.values = {};
+      renderAll();
+    };
+    el.appendChild(b);
+  });
+}
+
+function renderPartList() {
+  const el = document.getElementById("part-list");
+  el.innerHTML = "";
+  PRODUCTS[state.product].parts.forEach(part => {
+    const idx = state.selected.indexOf(part.id);
+    const div = document.createElement("div");
+    div.className = "part-item" + (idx >= 0 ? " on" : "");
+    div.innerHTML = `<span class="num">${idx >= 0 ? idx + 1 : ""}</span>
+      <span class="ko">${part.ko}</span><span class="en">${part.en}</span>`;
+    div.onclick = () => {
+      if (idx >= 0) state.selected.splice(idx, 1);
+      else state.selected.push(part.id);
+      renderAll();
+    };
+    el.appendChild(div);
+  });
+}
+
+function renderSizes() {
+  const el = document.getElementById("size-chips");
+  el.innerHTML = "";
+  state.sizes.forEach((s, si) => {
+    const chip = document.createElement("span");
+    chip.className = "size-chip";
+    chip.innerHTML = `<span class="name" title="클릭해서 이름 수정">${esc(s)}</span> <button title="삭제">✕</button>`;
+    chip.querySelector("button").onclick = () => {
+      state.sizes = state.sizes.filter(x => x !== s);
+      renderAll();
+    };
+    // 칩 이름 클릭 → 인라인 수정
+    chip.querySelector(".name").onclick = () => {
+      const inp = document.createElement("input");
+      inp.className = "rename";
+      inp.value = s;
+      inp.maxLength = 10;
+      chip.replaceChild(inp, chip.querySelector(".name"));
+      inp.focus();
+      inp.select();
+      const commit = () => {
+        const nv = inp.value.trim();
+        if (nv && nv !== s && !state.sizes.includes(nv)) {
+          state.sizes[si] = nv;
+          // 입력해둔 치수값도 새 이름으로 이전
+          Object.values(state.values).forEach(m => {
+            if (s in m) { m[nv] = m[s]; delete m[s]; }
+          });
+        }
+        renderAll();
+      };
+      inp.addEventListener("blur", commit);
+      inp.addEventListener("keydown", e => {
+        if (e.key === "Enter") inp.blur();
+        if (e.key === "Escape") { inp.value = s; inp.blur(); }
+      });
+    };
+    el.appendChild(chip);
+  });
+}
+
+function renderValueGrid() {
+  const p = PRODUCTS[state.product];
+  const sel = state.selected.map(id => p.parts.find(x => x.id === id)).filter(Boolean);
+  const tbl = document.getElementById("value-grid");
+  if (sel.length === 0 || state.sizes.length === 0) {
+    tbl.innerHTML = `<tr><td style="color:#9aa1ad;font-size:12px">치수 항목과 사이즈를 먼저 추가하세요</td></tr>`;
+    return;
+  }
+  let html = `<tr><th></th>`;
+  state.sizes.forEach(s => html += `<th>${esc(s)}</th>`);
+  html += `</tr>`;
+  sel.forEach((part, i) => {
+    html += `<tr><td class="lbl">${i + 1} ${part.ko}</td>`;
+    state.sizes.forEach(s => {
+      const v = (state.values[part.id] || {})[s] || "";
+      html += `<td><input data-part="${part.id}" data-size="${esc(s)}" value="${esc(v)}" inputmode="decimal" placeholder="-"></td>`;
+    });
+    html += `</tr>`;
+  });
+  tbl.innerHTML = html;
+  tbl.querySelectorAll("input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const pid = inp.dataset.part, sz = inp.dataset.size;
+      state.values[pid] = state.values[pid] || {};
+      state.values[pid][sz] = inp.value.trim();
+      renderOutput();
+    });
+  });
+}
+
+function renderAll() {
+  renderProdTabs();
+  renderPartList();
+  renderSizes();
+  renderValueGrid();
+  renderOutput();
+}
+
+/* ══════════════════ 이벤트 ══════════════════ */
+document.getElementById("size-add-btn").onclick = addSize;
+document.getElementById("size-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") addSize();
+});
+function addSize() {
+  const inp = document.getElementById("size-input");
+  const v = inp.value.trim();
+  if (!v || state.sizes.includes(v)) { inp.value = ""; return; }
+  state.sizes.push(v);
+  inp.value = "";
+  renderAll();
+}
+
+document.querySelectorAll("#unit-toggle button").forEach(b => {
+  b.onclick = () => {
+    state.unit = b.dataset.unit;
+    renderUnitToggle();
+    renderOutput();
+  };
+});
+function renderUnitToggle() {
+  document.querySelectorAll("#unit-toggle button").forEach(b =>
+    b.classList.toggle("on", state.unit === b.dataset.unit));
+}
+renderUnitToggle();
+
+document.getElementById("chk-toggle").addEventListener("change", e => {
+  state.checkupOn = e.target.checked;
+  renderOutput();
+});
+
+document.getElementById("export-btn").onclick = async () => {
+  const btn = document.getElementById("export-btn");
+  btn.disabled = true;
+  btn.textContent = "생성 중…";
+  try {
+    const node = document.getElementById("output");
+    const dataUrl = await htmlToImage.toPng(node, {
+      pixelRatio: 2,
+      backgroundColor: "#ffffff"
+    });
+    const a = document.createElement("a");
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.download = `measurements_${state.product}_${ts}.png`;
+    a.href = dataUrl;
+    a.click();
+  } catch (err) {
+    alert("이미지 생성 실패: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "PNG 이미지 다운로드";
+  }
+};
+
+renderAll();
+</script>
+</body>
+</html>
