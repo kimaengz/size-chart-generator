@@ -44,10 +44,15 @@
   }
   .ed-hint { font-size: 11px; color: var(--gray-4); margin-top: 6px; line-height: 1.5; }
 
-  .prod-tabs { display: flex; gap: 8px; }
+  .cat-select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--gray-2); border-radius: 8px;
+    background: #fff; font-size: 14px; font-weight: 600; color: var(--ink);
+    margin-bottom: 10px; cursor: pointer;
+  }
+  .prod-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
   .prod-tab {
-    flex: 1; padding: 10px 0; border: 1px solid var(--gray-2); border-radius: 8px;
-    background: #fff; font-size: 14px; cursor: pointer; font-weight: 600; color: var(--gray-5);
+    padding: 8px 14px; border: 1px solid var(--gray-2); border-radius: 8px;
+    background: #fff; font-size: 13px; cursor: pointer; font-weight: 600; color: var(--gray-5);
   }
   .prod-tab.on { border-color: var(--teal); color: #0aa; background: #f0fbfb; }
 
@@ -201,6 +206,7 @@
 
   <div class="ed-section">
     <h2>1. 제품 선택</h2>
+    <select class="cat-select" id="cat-select"></select>
     <div class="prod-tabs" id="prod-tabs"></div>
   </div>
 
@@ -253,95 +259,9 @@
 
 <script src="html-to-image.js"></script>
 <script src="assets.js"></script>
+<script src="products.js"></script>
 <script>
-/* ══════════════════ 제품 정의 ══════════════════
- * 선 좌표는 각 제품 원본 이미지의 픽셀 좌표계 기준 (캔버스 분석으로 보정).
- * badge = 번호 원 위치. lines = 파란 선 (dash: 점선 여부)
- */
 const TEAL = "#35cccb";
-
-const PRODUCTS = {
-  tshirt: {
-    label: "티셔츠",
-    image: ASSETS.tshirt, imgW: 720, imgH: 371,
-    parts: [
-      { id: "length", ko: "총장", en: "Body length",
-        desc_ko: "뒷편 옆목점부터 밑단 끝까지의 수직 길이",
-        desc_en: "The length between the edge of the neck opening to the bottom(hem)",
-        badge: [340, 16],
-        lines: [
-          { x1: 340, y1: 30, x2: 340, y2: 96, dash: true },
-          { x1: 340, y1: 96, x2: 340, y2: 358 }
-        ] },
-      { id: "shoulder", ko: "어깨너비", en: "Shoulder width",
-        desc_ko: "어깨 재봉선 끝점 사이의 직선 길이",
-        desc_en: "The length between both ends of the shoulder sewing lines",
-        badge: [202, 84],
-        lines: [
-          { x1: 232, y1: 84, x2: 446, y2: 84 },
-          { x1: 446, y1: 72, x2: 446, y2: 96 }
-        ] },
-      { id: "chest", ko: "가슴너비", en: "Chest width",
-        desc_ko: "암홀 아래 1.5cm 지점에서 반대편 동일지점까지의 길이",
-        desc_en: "The length between 1.5cm below one armhole to the other one",
-        badge: [206, 210],
-        lines: [ { x1: 234, y1: 210, x2: 448, y2: 210 } ] },
-      { id: "hem", ko: "밑단너비", en: "Hem width",
-        desc_ko: "밑단 양쪽 끝점 사이의 길이",
-        desc_en: "The length between both ends of the hem",
-        badge: [204, 352],
-        lines: [ { x1: 234, y1: 352, x2: 448, y2: 352 } ] },
-      { id: "sleeve", ko: "소매길이", en: "Sleeve length",
-        desc_ko: "어깨 재봉선 끝점에서 소매 끝점까지의 길이",
-        desc_en: "The length between the end of the shoulder sewing line to the end of the sleeve",
-        badge: [616, 196],
-        lines: [ { x1: 456, y1: 80, x2: 588, y2: 278 } ] }
-    ]
-  },
-
-  pants: {
-    label: "바지",
-    image: ASSETS.pants, imgW: 720, imgH: 512,
-    parts: [
-      { id: "length", ko: "총장", en: "Total length",
-        desc_ko: "허리단 상단부터 밑단까지의 길이",
-        desc_en: "The length between the top of the waistband to the hem",
-        badge: [197, 490],
-        lines: [ { x1: 241, y1: 52, x2: 209, y2: 464 } ] },
-      { id: "rise", ko: "밑위", en: "Rise",
-        desc_ko: "허리단 상단부터 밑위 재봉선까지의 수직 길이",
-        desc_en: "The vertical length between the top of the waistband to the crotch seam",
-        badge: [352, 16],
-        lines: [
-          { x1: 352, y1: 30, x2: 352, y2: 54, dash: true },
-          { x1: 352, y1: 54, x2: 352, y2: 185 }
-        ] },
-      { id: "waist", ko: "허리단면", en: "Waist",
-        desc_ko: "허리단 양쪽 끝점 사이의 길이",
-        desc_en: "The length between both ends of the waistband",
-        badge: [476, 56],
-        lines: [ { x1: 255, y1: 60, x2: 450, y2: 60 } ] },
-      { id: "thigh", ko: "허벅지단면", en: "Thigh",
-        desc_ko: "밑위 재봉선에서 허벅지 바깥쪽 재봉선까지의 길이",
-        desc_en: "The length between the crotch seam to the outer thigh",
-        badge: [483, 159],
-        lines: [ { x1: 354, y1: 183, x2: 459, y2: 164 } ] },
-      { id: "hip", ko: "엉덩이단면", en: "Hip",
-        desc_ko: "밑위 재봉선 지점에서 수평으로 반대편까지의 길이",
-        desc_en: "The horizontal length across the hip at the crotch level",
-        badge: [512, 194],
-        lines: [
-          { x1: 352, y1: 196, x2: 460, y2: 196 },
-          { x1: 460, y1: 196, x2: 496, y2: 196, dash: true }
-        ] },
-      { id: "hemwidth", ko: "밑단단면", en: "Leg opening",
-        desc_ko: "바지 밑단 양쪽 끝점 사이의 길이",
-        desc_en: "The length between both ends of the leg opening",
-        badge: [508, 474],
-        lines: [ { x1: 382, y1: 487, x2: 482, y2: 478 } ] }
-    ]
-  }
-};
 
 const CHECKUP_ROWS = [
   { id: "thickness", ko: "두께감", en: "Thickness",
@@ -356,7 +276,8 @@ const CHECKUP_ROWS = [
 
 /* ══════════════════ 상태 ══════════════════ */
 const state = {
-  product: "tshirt",
+  product: "100",
+  category: "반팔",
   selected: [],            // part id, 클릭(입력) 순서 = 번호
   sizes: ["Free"],
   values: {},              // values[partId][size] = "72"
@@ -462,22 +383,42 @@ function renderOutput() {
 }
 
 /* ══════════════════ 편집 패널 렌더 ══════════════════ */
+function switchProduct(id) {
+  if (state.product === id) return;
+  state.product = id;
+  state.selected = [];
+  state.values = {};
+  renderAll();
+}
+
 function renderProdTabs() {
+  const sel = document.getElementById("cat-select");
+  sel.innerHTML = "";
+  PRODUCT_CATEGORIES.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    if (cat === state.category) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => {
+    state.category = sel.value;
+    const first = Object.entries(PRODUCTS).find(([, p]) => p.category === state.category);
+    if (first) switchProduct(first[0]);
+    else renderAll();
+  };
+
   const el = document.getElementById("prod-tabs");
   el.innerHTML = "";
-  Object.entries(PRODUCTS).forEach(([id, p]) => {
-    const b = document.createElement("button");
-    b.className = "prod-tab" + (state.product === id ? " on" : "");
-    b.textContent = p.label;
-    b.onclick = () => {
-      if (state.product === id) return;
-      state.product = id;
-      state.selected = [];
-      state.values = {};
-      renderAll();
-    };
-    el.appendChild(b);
-  });
+  Object.entries(PRODUCTS)
+    .filter(([, p]) => p.category === state.category)
+    .forEach(([id, p]) => {
+      const b = document.createElement("button");
+      b.className = "prod-tab" + (state.product === id ? " on" : "");
+      b.textContent = p.label;
+      b.onclick = () => switchProduct(id);
+      el.appendChild(b);
+    });
 }
 
 function renderPartList() {
