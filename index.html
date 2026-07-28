@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>상세페이지 치수 이미지 생성기</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css">
 <style>
   :root {
-    --teal: #35cccb;
+    --teal: #00cbd5;
     --ink: #111;
     --gray-1: #f5f6f8;
     --gray-2: #e5e7eb;
@@ -18,7 +19,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
     background: #eceff3;
     color: var(--ink);
     display: flex;
@@ -147,23 +148,28 @@
 
   /* ─────────── 결과물 (내보내기 대상) ─────────── */
   #output {
-    width: 440px; background: #fff; padding: 34px 26px 40px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    width: 360px; background: #fff; padding: 34px 26px 40px;
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
   }
   #output h2.big { font-size: 25px; font-weight: 800; letter-spacing: -.01em; }
   #output .figure { padding: 26px 0 10px; }
   #output .figure svg { width: 100%; height: auto; display: block; }
 
-  #output table.meas { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  #output table.meas th, #output table.meas td {
-    border-top: 1px solid #ececec; padding: 17px 4px; font-size: 14px;
+  #output table.meas {
+    width: calc(100% + 52px); margin-left: -26px; margin-right: -26px;
+    border-collapse: collapse; margin-top: 8px; font-size: 12px; font-weight: 400;
   }
-  #output table.meas tr:last-child td { border-bottom: 1px solid #ececec; }
+  #output table.meas th, #output table.meas td {
+    border-top: 1px solid #eeeeee; padding: 17px 4px; font-size: inherit;
+  }
+  #output table.meas tr:last-child td { border-bottom: 1px solid #eeeeee; }
   #output table.meas th { font-weight: 700; text-align: center; }
   #output table.meas th.corner { border-top: none; }
-  #output table.meas thead th { border-top: none; border-bottom: 1px solid #ececec; }
+  #output table.meas thead th { border-top: none; border-bottom: 1px solid #eeeeee; }
   #output table.meas td.lbl { text-align: left; color: #111; }
   #output table.meas td.val { text-align: center; }
+  #output table.meas th:first-child, #output table.meas td:first-child { padding-left: 46px; }
+  #output table.meas th.spacer, #output table.meas td.spacer { width: 42px; padding: 17px 0; }
 
   #output .guide { margin-top: 34px; }
   #output .guide h3 { font-size: 19px; font-weight: 800; color: #b6bcc4; margin-bottom: 14px; }
@@ -247,7 +253,7 @@
 
   <div class="ed-section">
     <button id="export-btn">PNG 이미지 다운로드</button>
-    <div class="ed-hint" style="text-align:center">2배 해상도(880px 폭)로 저장됩니다</div>
+    <div class="ed-hint" style="text-align:center">2배 해상도(720px 폭)로 저장됩니다</div>
   </div>
 </div>
 
@@ -261,7 +267,7 @@
 <script src="assets.js"></script>
 <script src="products.js"></script>
 <script>
-const TEAL = "#35cccb";
+const TEAL = "#00cbd5";
 
 const CHECKUP_ROWS = [
   { id: "thickness", ko: "두께감", en: "Thickness",
@@ -303,7 +309,7 @@ function buildSvg() {
     overlay += `<circle cx="${bx}" cy="${by}" r="14" fill="${TEAL}"/>
       <text x="${bx}" y="${by}" fill="#fff" font-size="15" font-weight="700"
         text-anchor="middle" dominant-baseline="central"
-        font-family="Arial, sans-serif">${i + 1}</text>`;
+        font-family="Pretendard Variable, Pretendard, Arial, sans-serif">${i + 1}</text>`;
   });
   return `<svg viewBox="0 0 ${p.imgW} ${p.imgH}" xmlns="http://www.w3.org/2000/svg">${bg}${overlay}</svg>`;
 }
@@ -320,17 +326,18 @@ function renderOutput() {
   if (sel.length === 0) {
     html += `<div class="empty-note">왼쪽에서 치수 항목을 선택하세요</div>`;
   } else {
-    // 섹션 2: 치수 표
+    // 섹션 2: 치수 표 (라벨 좌측 정렬, 사이즈는 남은 폭을 균등분할해 중앙 정렬 —
+    // 사이즈가 1개뿐이어도 남은 공간 전체 기준으로 중앙에 오도록 스페이서 칼럼으로 우측 여백 처리)
     html += `<table class="meas"><thead><tr><th class="corner"></th>`;
     state.sizes.forEach(s => html += `<th>${esc(s)}</th>`);
-    html += `</tr></thead><tbody>`;
+    html += `<th class="spacer"></th></tr></thead><tbody>`;
     sel.forEach((part, i) => {
       html += `<tr><td class="lbl"><span class="lbltxt" data-num="${i + 1}">${i + 1} : ${esc(part.en)}</span></td>`;
       state.sizes.forEach(s => {
         const v = (state.values[part.id] || {})[s] || "";
         html += `<td class="val">${v ? esc(v) + state.unit : "-"}</td>`;
       });
-      html += `</tr>`;
+      html += `<td class="spacer"></td></tr>`;
     });
     html += `</tbody></table>`;
 
@@ -365,10 +372,20 @@ function renderOutput() {
 
   document.getElementById("output").innerHTML = html;
 
-  // 섹션 2 라벨이 줄바꿈되면 항목명을 빼고 번호만 표시 (표 전체 일괄 적용)
-  const lblSpans = [...document.querySelectorAll("#output table.meas .lbltxt")];
-  if (lblSpans.some(sp => sp.getClientRects().length > 1)) {
-    lblSpans.forEach(sp => { sp.textContent = sp.dataset.num; });
+  // 섹션 2 라벨이 줄바꿈되면: 폭은 고정한 채 표 글자 크기를 단계적으로 줄여서 해소하고,
+  // 최소 크기(9px)에서도 줄바꿈되면 그때만 항목명을 빼고 번호만 표시 (표 전체 일괄 적용)
+  const measTable = document.querySelector("#output table.meas");
+  if (measTable) {
+    const lblSpans = () => [...measTable.querySelectorAll(".lbltxt")];
+    const wraps = () => lblSpans().some(sp => sp.getClientRects().length > 1);
+    let fontSize = 12;
+    while (wraps() && fontSize > 9) {
+      fontSize -= 1;
+      measTable.style.fontSize = fontSize + "px";
+    }
+    if (wraps()) {
+      lblSpans().forEach(sp => { sp.textContent = sp.dataset.num; });
+    }
   }
 
   // Check Up 클릭 바인딩 (미리보기에서 직접 선택)
